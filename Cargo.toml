@@ -1,0 +1,12 @@
+[package]
+name = "boggler"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+postcard = { version = "1.1" }
+trie-rs = { version = "0.4", features = ["serde"] }
+
+[build-dependencies]
+postcard = { version = "1.1", features = ["alloc"] }
+trie-rs = { version = "0.4", features = ["serde"] }
