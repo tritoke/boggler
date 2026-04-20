@@ -1,33 +1,35 @@
 use std::{iter::FusedIterator, ops::Index};
 
 #[allow(unused)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
 pub enum Tile {
-    A,
-    B,
-    C,
-    D,
-    E,
-    F,
-    G,
-    H,
-    I,
-    J,
-    K,
-    L,
-    M,
-    N,
-    O,
-    P,
-    QU,
-    R,
-    S,
-    T,
-    U,
-    V,
-    W,
-    X,
-    Y,
-    Z,
+    A = b'A',
+    B = b'B',
+    C = b'C',
+    D = b'D',
+    E = b'E',
+    F = b'F',
+    G = b'G',
+    H = b'H',
+    I = b'I',
+    J = b'J',
+    K = b'K',
+    L = b'L',
+    M = b'M',
+    N = b'N',
+    O = b'O',
+    P = b'P',
+    QU = b'Q',
+    R = b'R',
+    S = b'S',
+    T = b'T',
+    U = b'U',
+    V = b'V',
+    W = b'W',
+    X = b'X',
+    Y = b'Y',
+    Z = b'Z',
 }
 
 impl Tile {
@@ -126,12 +128,20 @@ impl Index<TileLocation> for Boggle {
 }
 
 /// Opaque Representation of the location of a tile on a boggle board
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TileLocation {
     // type invariant: both must be between 0 and 3
     x: usize,
     y: usize,
 }
+
+#[rustfmt::skip]
+pub const ALL_TILES: [TileLocation; 16] = [
+    TileLocation { x: 0, y: 0 }, TileLocation { x: 1, y: 0 }, TileLocation { x: 2, y: 0 }, TileLocation { x: 3, y: 0 },
+    TileLocation { x: 0, y: 1 }, TileLocation { x: 1, y: 1 }, TileLocation { x: 2, y: 1 }, TileLocation { x: 3, y: 1 },
+    TileLocation { x: 0, y: 2 }, TileLocation { x: 1, y: 2 }, TileLocation { x: 2, y: 2 }, TileLocation { x: 3, y: 2 },
+    TileLocation { x: 0, y: 3 }, TileLocation { x: 1, y: 3 }, TileLocation { x: 2, y: 3 }, TileLocation { x: 3, y: 3 },
+];
 
 impl From<TileLocation> for u8 {
     fn from(TileLocation { x, y }: TileLocation) -> Self {
@@ -374,7 +384,6 @@ impl ExactSizeIterator for NextTileIterator {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use Tile::*;
 
     macro_rules! tile {
         ($x:expr, $y:expr) => {

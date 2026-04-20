@@ -16,6 +16,7 @@ name = "boggler"
 version = "0.1.0"
 dependencies = [
  "postcard",
+ "rayon",
  "trie-rs",
 ]
 

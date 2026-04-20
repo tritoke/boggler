@@ -1,9 +1,12 @@
-use trie_rs::Trie;
+use std::{collections::BTreeSet, hint::unreachable_unchecked};
+
+use rayon::prelude::*;
+use trie_rs::{Trie, try_collect::{TryFromIterator, Collect}};
 
 mod board;
 use board::{BoardPath, Boggle, Tile::*};
 
-use crate::board::TileLocation;
+use crate::board::{ALL_TILES, Tile, TileLocation};
 
 static TRIE_POSTCARD: &[u8] = include_bytes!(concat!(std::env!("OUT_DIR"), "/trie.postcard"));
 
@@ -22,18 +25,33 @@ fn main() {
 
     println!("{board}");
 
-    dbg!(solve_from_tile(&board, &trie, (2, 0)));
+    let mut all_words = vec![];
+    let par_solver = ALL_TILES.into_par_iter().flat_map(|tile| solve_from_tile(&board, &trie, tile));
+    all_words.par_extend(par_solver);
+
+    all_words.sort_by_key(|word| 16 - word.len());
+    for word in all_words {
+        let score = match word.len() {
+            // SAFETY: the trie only contains words longer than three characters
+            0 | 1 | 2 => unsafe { unreachable_unchecked() },
+            3 | 4 => 1,
+            5 => 2,
+            6 => 3,
+            7 => 5,
+            _ => 11,
+        };
+
+        println!("{word}: {score}");
+    }
 }
 
-fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: (usize, usize)) -> Vec<String> {
+fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: TileLocation) -> Vec<String> {
     let mut words = vec![];
 
-    let tile_loc = TileLocation::try_from(starting_tile).unwrap();
-    let mut to_explore = vec![BoardPath::starting_at(tile_loc)];
+    let mut to_explore = vec![BoardPath::starting_at(starting_tile)];
     let mut word = String::with_capacity(32);
+    let mut valid_next_chars = BTreeSet::new();
     while let Some(prior_path) = to_explore.pop() {
-        // dbg!("hi");
-        // dbg!(prior_path.into_iter().collect::<Vec<_>>());
         word.clear();
 
         // construct the word this path represents
@@ -43,7 +61,6 @@ fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: (usize, usize
 
         // if its in the dictionary the add it as a found word
         if trie.exact_match(&word) {
-            dbg!(&word);
             words.push(word.clone());
         }
 
@@ -56,7 +73,6 @@ fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: (usize, usize
 
             word.push_str(board[tile].as_str());
             if trie.exact_match(&word) {
-                dbg!(&word);
                 words.push(word.clone());
             }
 
@@ -64,9 +80,19 @@ fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: (usize, usize
             continue;
         }
 
+        valid_next_chars.clear();
+        valid_next_chars.extend(trie.postfix_search(&word).filter_map(|c: CollectOne| c.0));
+
+        if valid_next_chars.is_empty() {
+            continue;
+        }
+
         // if the path is less than 15 characters long push all of its valid continuations to the stack
         for tile in prior_path.valid_next_tiles() {
-            // TODO: use the trie to consider whether the next letter is even worth exploring?
+            if !valid_next_chars.contains(&board[tile]) {
+                continue
+            }
+
             let mut next = prior_path;
             next.push(tile);
             to_explore.push(next);
@@ -74,4 +100,31 @@ fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: (usize, usize
     }
 
     words
+}
+
+struct CollectOne(Option<Tile>);
+
+impl TryFromIterator<u8, Collect> for CollectOne {
+    type Error = ();
+
+    fn try_from_iter<T>(iter: T) -> Result<Self, Self::Error>
+        where
+            Self: Sized,
+            T: IntoIterator<Item = u8> {
+
+        let mut iter = iter.into_iter();
+        let Some(c) = iter.next() else {
+            return Ok(Self(None));
+        };
+
+        if c == b'Q' && iter.next() != Some(b'U') {
+            return Ok(Self(None));
+        }
+
+        // fucking better be
+        debug_assert!(b'A' <= c && c <= b'Z');
+
+        // SAFETY: the trie only contains these characters
+        Ok(Self(unsafe { std::mem::transmute(c) }))
+    }
 }
