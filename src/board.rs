@@ -31,7 +31,7 @@ pub enum Tile {
 }
 
 impl Tile {
-    const fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
             Tile::A => "A",
             Tile::B => "B",
@@ -126,7 +126,7 @@ impl Index<TileLocation> for Boggle {
 }
 
 /// Opaque Representation of the location of a tile on a boggle board
-#[cfg_attr(test, derive(Debug, PartialEq, Eq, PartialOrd, Ord))]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TileLocation {
     // type invariant: both must be between 0 and 3
     x: usize,
@@ -153,6 +153,7 @@ impl TryFrom<(usize, usize)> for TileLocation {
 
 /// Packed representation of a path around a boggle board
 #[repr(transparent)]
+#[derive(Copy, Clone)]
 pub struct BoardPath {
     /// This is treated as effectively [u4; 16]
     /// the lowest u4 is the number of packed locations
@@ -243,7 +244,6 @@ impl BoardPath {
         let last_tile_loc = (self.locations_packed >> (no_locs * 4)) & 0b1111;
 
         let mut mask = Self::TILELOC_NEIGHBOURS[last_tile_loc as usize];
-        dbg!(mask);
 
         for i in 1..no_locs {
             let tile_loc = (self.locations_packed >> (i * 4)) & 0b1111;
@@ -255,7 +255,6 @@ impl BoardPath {
         for i in 0..16 {
             // if a position is not in the mask then skip it
             if (mask >> i) & 1 != 1 {
-                eprintln!("Skipping: {i}");
                 continue;
             }
 
@@ -276,7 +275,10 @@ impl IntoIterator for BoardPath {
     type IntoIter = BoardPathIterator;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        BoardPathIterator {
+           path: self,
+           i: 0, 
+        }
     }
 }
 
@@ -302,6 +304,8 @@ impl Iterator for BoardPathIterator {
 
         debug_assert!(x <= 3);
         debug_assert!(y <= 3);
+
+        self.i += 1;
 
         Some(TileLocation { x, y })
     }
