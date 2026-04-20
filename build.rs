@@ -28,6 +28,8 @@ fn main() {
 
     let trie = builder.build();
     let trie_data = postcard::to_allocvec(&trie).expect("Failed to serialise trie");
-    let outfile: PathBuf = [std::env::var("OUT_DIR").unwrap().as_str(), "trie.postcard"].iter().collect();
+    let outfile: PathBuf = [std::env::var("OUT_DIR").unwrap().as_str(), "trie.postcard"]
+        .iter()
+        .collect();
     std::fs::write(outfile, trie_data).expect("Failed to write serialised trie data");
 }

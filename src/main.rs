@@ -1,32 +1,37 @@
 use std::{collections::BTreeSet, hint::unreachable_unchecked};
 
 use rayon::prelude::*;
-use trie_rs::{Trie, try_collect::{TryFromIterator, Collect}};
+use trie_rs::{
+    Trie,
+    try_collect::{Collect, TryFromIterator},
+};
 
 mod board;
-use board::{BoardPath, Boggle, Tile::*};
+use board::{BoardPath, Boggle};
 
 use crate::board::{ALL_TILES, Tile, TileLocation};
 
 static TRIE_POSTCARD: &[u8] = include_bytes!(concat!(std::env!("OUT_DIR"), "/trie.postcard"));
 
 fn main() {
+    let args: Vec<_> = std::env::args_os().collect();
+
+    if args.len() != 3 || args.get(1).is_some_and(|x| x != "--grid") {
+        eprintln!("USAGE: {} --grid {{grid file}}", args[0].display());
+        return;
+    }
+
     let trie: Trie<u8> = postcard::from_bytes(TRIE_POSTCARD).unwrap();
 
-    #[rustfmt::skip]
-    let board = Boggle {
-        tiles: [
-            [D, W, G, H],
-            [R, L, N, E],
-            [U, O, T, A],
-            [S, I, C, M],
-        ]
-    };
+    let board_string = std::fs::read_to_string(&args[2]).expect("Failed to read the board");
+    let board: Boggle = board_string.parse().expect("Failed to parse the board");
 
     println!("{board}");
 
     let mut all_words = vec![];
-    let par_solver = ALL_TILES.into_par_iter().flat_map(|tile| solve_from_tile(&board, &trie, tile));
+    let par_solver = ALL_TILES
+        .into_par_iter()
+        .flat_map(|tile| solve_from_tile(&board, &trie, tile));
     all_words.par_extend(par_solver);
 
     all_words.sort_by_key(|word| 16 - word.len());
@@ -90,7 +95,7 @@ fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: TileLocation)
         // if the path is less than 15 characters long push all of its valid continuations to the stack
         for tile in prior_path.valid_next_tiles() {
             if !valid_next_chars.contains(&board[tile]) {
-                continue
+                continue;
             }
 
             let mut next = prior_path;
@@ -108,10 +113,10 @@ impl TryFromIterator<u8, Collect> for CollectOne {
     type Error = ();
 
     fn try_from_iter<T>(iter: T) -> Result<Self, Self::Error>
-        where
-            Self: Sized,
-            T: IntoIterator<Item = u8> {
-
+    where
+        Self: Sized,
+        T: IntoIterator<Item = u8>,
+    {
         let mut iter = iter.into_iter();
         let Some(c) = iter.next() else {
             return Ok(Self(None));

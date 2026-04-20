@@ -32,6 +32,46 @@ pub enum Tile {
     Z = b'Z',
 }
 
+impl std::str::FromStr for Tile {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let tile = match s {
+            "a" | "A" => Tile::A,
+            "b" | "B" => Tile::B,
+            "c" | "C" => Tile::C,
+            "d" | "D" => Tile::D,
+            "e" | "E" => Tile::E,
+            "f" | "F" => Tile::F,
+            "g" | "G" => Tile::G,
+            "h" | "H" => Tile::H,
+            "i" | "I" => Tile::I,
+            "j" | "J" => Tile::J,
+            "k" | "K" => Tile::K,
+            "l" | "L" => Tile::L,
+            "m" | "M" => Tile::M,
+            "n" | "N" => Tile::N,
+            "o" | "O" => Tile::O,
+            "p" | "P" => Tile::P,
+            "qu" | "QU" | "Qu" | "qU" => Tile::QU,
+            "r" | "R" => Tile::R,
+            "s" | "S" => Tile::S,
+            "t" | "T" => Tile::T,
+            "u" | "U" => Tile::U,
+            "v" | "V" => Tile::V,
+            "w" | "W" => Tile::W,
+            "x" | "X" => Tile::X,
+            "y" | "Y" => Tile::Y,
+            "z" | "Z" => Tile::Z,
+            _ => {
+                return Err(format!("Unknown boggle tile"));
+            }
+        };
+
+        Ok(tile)
+    }
+}
+
 impl Tile {
     pub const fn as_str(&self) -> &'static str {
         match self {
@@ -102,6 +142,19 @@ impl std::fmt::Display for Tile {
 
 pub struct Boggle {
     pub tiles: [[Tile; 4]; 4],
+}
+
+impl std::str::FromStr for Boggle {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let blobs = s.split_whitespace();
+        let tiles: Vec<Tile> = blobs.map(Tile::from_str).collect::<Result<_, _>>()?;
+        let tile_array: [Tile; 16] = tiles.as_slice().try_into().map_err(|e| format!("{e}"))?;
+        // safety: its fine cmon
+        let tile_grid: [[Tile; 4]; 4] = unsafe { std::mem::transmute(tile_array) };
+        Ok(Self { tiles: tile_grid })
+    }
 }
 
 impl std::fmt::Display for Boggle {
@@ -285,10 +338,7 @@ impl IntoIterator for BoardPath {
     type IntoIter = BoardPathIterator;
 
     fn into_iter(self) -> Self::IntoIter {
-        BoardPathIterator {
-           path: self,
-           i: 0, 
-        }
+        BoardPathIterator { path: self, i: 0 }
     }
 }
 
@@ -427,9 +477,9 @@ mod tests {
         tiles.sort();
         #[rustfmt::skip]
         assert_eq!(tiles, vec![
-            tile!(0, 0), tile!(0, 1), tile!(0, 2), 
-            tile!(1, 0),              tile!(1, 2), 
-            tile!(2, 0), tile!(2, 1), tile!(2, 2), 
+            tile!(0, 0), tile!(0, 1), tile!(0, 2),
+            tile!(1, 0),              tile!(1, 2),
+            tile!(2, 0), tile!(2, 1), tile!(2, 2),
         ]);
     }
 
