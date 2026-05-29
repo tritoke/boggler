@@ -35,6 +35,7 @@ fn main() {
     all_words.par_extend(par_solver);
 
     all_words.sort_by_key(|word| 16 - word.len());
+    let mut total = 0;
     for word in all_words {
         let score = match word.len() {
             // SAFETY: the trie only contains words longer than three characters
@@ -45,9 +46,11 @@ fn main() {
             7 => 5,
             _ => 11,
         };
+        total += score;
 
         println!("{word}: {score}");
     }
+    println!("Total points available: {total}")
 }
 
 fn solve_from_tile(board: &Boggle, trie: &Trie<u8>, starting_tile: TileLocation) -> Vec<String> {
